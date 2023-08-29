@@ -18,18 +18,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         window.makeKeyAndVisible()
         
-        let tabbar = UITabBarController()
-        
-        let firstVC = UINavigationController(rootViewController: CharactersViewController())
-        let secondVC = UINavigationController(rootViewController: FavoritesViewController())
-        
-        
-        firstVC.tabBarItem = UITabBarItem(title: "Home", image: UIImage(systemName: "house"),selectedImage: UIImage(systemName: "house.fill"))
-        secondVC.tabBarItem = UITabBarItem(title: "Favorites", image: UIImage(systemName: "heart"),selectedImage: UIImage(systemName: "heart.fill"))
-        
-        tabbar.viewControllers = [firstVC, secondVC]
-        
-        window.rootViewController = tabbar
+        window.rootViewController = TabbarControllers()
     }
     
     func sceneDidDisconnect(_ scene: UIScene) {

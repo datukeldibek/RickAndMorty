@@ -8,39 +8,45 @@
 import UIKit
 
 class FavoritesViewController: UIViewController {
-
+    
     private lazy var tableView: UITableView = {
         let view = UITableView()
         view.dataSource = self
         view.delegate = self
-        view.register(CustomCharactersCell.self, forCellReuseIdentifier: CustomCharactersCell.reuseID)
+        view.backgroundColor = Constants.Color.baseColor
+        view.register(CustomCharactersCell.self, forCellReuseIdentifier: CustomCharactersCell.id)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
-    var likedChars: [Result] {
+    var charactersViewController: CharactersViewController?
+    
+    var likedCharsFromUD: [Result] {
         get {
-            guard let data = UserDefaults.standard.data(forKey: "qwerty") else {return []}
-            let results = try! JSONDecoder().decode([Result].self, from: data)
-            return results
+            let data = UserdefaultStorage.shared.getDataWithKey(forKey: .favoritesArray)
+            let results = try? JSONDecoder().decode([Result].self, from: data)
+            print("##### Result on Fvorits VC -> \(results)")
+            return results ?? []
         }
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .orange
-        let rrr = likedChars
-        print(rrr)
-        setUp()
+        setup()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         tableView.reloadData()
     }
-    
-    func setUp() {
-        view.addSubview(tableView)
-    
+
+    func setup() {
+        view.backgroundColor = Constants.Color.baseColor
+        setupLayouts()
+    }
+
+    func setupLayouts() {
+        view.addSubviews(tableView)
+        
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -52,24 +58,36 @@ class FavoritesViewController: UIViewController {
 
 extension FavoritesViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        likedChars.count
+        likedCharsFromUD.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: CustomCharactersCell.reuseID, for: indexPath) as! CustomCharactersCell
-        let model = likedChars[indexPath.row]
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: CustomCharactersCell.id, for: indexPath) as? CustomCharactersCell else {return UITableViewCell()}
+        let model = likedCharsFromUD[indexPath.row]
         cell.config(character: model)
         return cell
     }
     
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let vc = DetailsViewController()
-        vc.config(character: likedChars[indexPath.row])
-        navigationController?.pushViewController(vc, animated: true)
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        120
     }
     
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        100
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard let delegateViewController = charactersViewController else {return}
+        let detailsViewController = DetailsViewController()
+//        let vc2 = CharactersViewController()
+//        vc.delegate = vc2
+        
+//        guard let viewControllers = self.navigationController?.viewControllers else {return}
+//
+//        for aViewController in viewControllers {
+//            if aViewController is CharactersViewController {
+//                detailsViewController.delegate = aViewController as! CharacterDelegate
+//            }
+//        }
+        
+        detailsViewController.delegate = delegateViewController
+        detailsViewController.config(character: likedCharsFromUD[indexPath.row])
+        navigationController?.pushViewController(detailsViewController, animated: true)
     }
 }
-

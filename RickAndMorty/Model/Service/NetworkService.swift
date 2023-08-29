@@ -27,6 +27,25 @@ class NetworkService {
         .resume()
     }
     
+    func requestEpisodes(url: String, completion: @escaping (Episodes) -> Void) {
+        
+        guard let url = URL(string: url) else {return}
+        
+        let request = URLRequest(url: url)
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data else { return }
+
+            do {
+                let model = try JSONDecoder().decode(Episodes.self, from: data)
+                completion(model)
+            } catch {
+                print(error.localizedDescription)
+            }
+        }
+        .resume()
+    }
+    
     func getImage(url: String) -> Data {
         guard let data = ImageDownloader(
             urlString: url

@@ -13,23 +13,42 @@ class CharactersViewController: UIViewController {
         let view = UITableView()
         view.dataSource = self
         view.delegate = self
-        view.register(CustomCharactersCell.self, forCellReuseIdentifier: CustomCharactersCell.reuseID)
+        view.backgroundColor = Constants.Color.baseColor
+        view.separatorStyle = .none
+        view.register(CustomCharactersCell.self, forCellReuseIdentifier: CustomCharactersCell.id)
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
-    var searchBar =  UISearchBar()
-    
-    private let viewModel: CharactersViewModel
-    
+    private var searchBar: UISearchBar = {
+        let view = UISearchBar()
+        view.layer.cornerRadius = 15
+        view.clipsToBounds = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private var characters: [Result] = []
-    var likedCharacters: [Result] = [] {
-        didSet {
-            let data = try! JSONEncoder().encode(likedCharacters)
-            UserDefaults.standard.set(data, forKey: "qwerty")
+    
+    var likedCharsFromUD: [Result] {
+        get {
+//            let data = UserdefaultStorage.shared.getDataWithKey(forKey: .favoritesArray)
+//            let results = try! JSONDecoder().decode([Result].self, from: data)
+            return []
         }
     }
-    private var filteredCharacters: [Result] = []
-    private var isFiltered: Bool = false
+    
+    var likedCharacters: [Result] = []
+//    {
+//        didSet {
+//            let data = try! JSONEncoder().encode(likedCharacters)
+//            UserdefaultStorage.shared.saveWithKey(data, forKey: .favoritesArray)
+//        }
+//    }
+    
+    var filteredCharacters: [Result] = []
+    var isFiltered = false
+    private let viewModel: CharactersViewModel
     
     init() {
         viewModel = CharactersViewModel()
@@ -41,44 +60,43 @@ class CharactersViewController: UIViewController {
         super.init(coder: coder)
     }
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        setUp()
-        fetch()
+        setupUI()
+        fetchCharacters()
+        let data = UserdefaultStorage.shared.getDataWithKey(forKey: .favoritesArray)
+        do {
+            self.likedCharacters = try JSONDecoder().decode([Result].self, from: data)
+        }
+        catch {
+            
+        }
+//        likedCharacters = likedCharsFromUD
     }
-
-    func setUp() {
-        view.addSubview(tableView)
-        tableView.translatesAutoresizingMaskIntoConstraints = false
+    
+    func setupUI() {
+        navigationItem.title = "CHARACTERS"
+        view.backgroundColor = Constants.Color.baseColor
+        searchBar.delegate = self
+        setupLayouts()
+    }
+    
+    func setupLayouts() {
+        view.addSubviews(searchBar, tableView)
         
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            searchBar.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
+            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+            
+            tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        setupNavigationController()
     }
     
-    func setupNavigationController() {
-        navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.title = "Characters"
-        navigationController?.navigationBar.barTintColor = .systemBlue
-        
-        navigationController?.navigationBar.isTranslucent = false
-        navigationController?.navigationBar.barStyle = .black
-        navigationController?.navigationBar.tintColor = .white
-        
-        setupSearchBar()
-    }
-    
-    func setupSearchBar() {
-        searchBar.delegate = self
-        navigationItem.titleView = searchBar
-    }
-    
-    func fetch() {
+    func fetchCharacters() {
         viewModel.fetchCharacters { chars in
             self.characters = chars
             DispatchQueue.main.async {
@@ -87,6 +105,10 @@ class CharactersViewController: UIViewController {
         }
     }
     
+    private func handleMoveToTrash(_ id: Int) {
+        characters = characters.filter { $0.id != id }
+        tableView.reloadData()
+    }
 }
 
 extension CharactersViewController: UITableViewDataSource, UITableViewDelegate {
@@ -95,10 +117,14 @@ extension CharactersViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: CustomCharactersCell.reuseID, for: indexPath) as! CustomCharactersCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: CustomCharactersCell.id, for: indexPath) as! CustomCharactersCell
         let model = isFiltered ? filteredCharacters[indexPath.row] : characters[indexPath.row]
         cell.config(character: model)
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        120
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -108,15 +134,25 @@ extension CharactersViewController: UITableViewDataSource, UITableViewDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
     
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        100
+    func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let action = UIContextualAction(style: .normal,
+                                        title: "DELETE") { [weak self] (action, view, completionHandler) in
+            self?.handleMoveToTrash(self?.characters[indexPath.row].id ?? 0)
+            completionHandler(true)
+        }
+        action.backgroundColor = .systemRed
+        return UISwipeActionsConfiguration(actions: [action])
     }
 }
 
-//MARK: - UISearchBarDelegates
 extension CharactersViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        viewModel.filter(with: searchText)
+        if searchText.isEmpty {
+            isFiltered = false
+        } else {
+            isFiltered = true
+            filteredCharacters = characters.filter{ $0.name.lowercased().contains(searchText.lowercased()) }
+        }
         tableView.reloadData()
     }
 }
@@ -125,8 +161,17 @@ extension CharactersViewController: CharacterDelegate {
     func didReceiveCharacter(_ id: Int) {
         if let index = characters.firstIndex(where: {$0.id == id}) {
             self.likedCharacters.append(self.characters[index])
+            guard let data = try? JSONEncoder().encode(self.likedCharacters) else {return}
+            UserdefaultStorage.shared.saveWithKey(data, forKey: .favoritesArray)
+            print("##### likedCharacters after save -> \(likedCharacters)")
             print(likedCharacters.count)
         }
     }
+    
+    func removeCharacter(_ id: Int) {
+        self.likedCharacters = self.likedCharacters.filter { $0.id != id }
+        guard let data = try? JSONEncoder().encode(self.likedCharacters) else {return}
+        UserdefaultStorage.shared.saveWithKey(data, forKey: .favoritesArray)
+        print("##### likedCharacters after remove -> \(likedCharacters)")
+    }
 }
-

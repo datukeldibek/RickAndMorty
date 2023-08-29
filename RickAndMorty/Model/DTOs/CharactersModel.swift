@@ -56,3 +56,4 @@ enum Status: String, Codable {
     case dead = "Dead"
     case unknown = "unknown"
 }
+

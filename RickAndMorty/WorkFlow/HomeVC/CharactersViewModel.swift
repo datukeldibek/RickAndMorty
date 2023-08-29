@@ -13,7 +13,6 @@ class CharactersViewModel {
     
     private var characters: [Result] = []
     private var filteredCharacters: [Result] = []
-    private var isFiltered: Bool = false
     
     init() {
         self.networkService = NetworkService()

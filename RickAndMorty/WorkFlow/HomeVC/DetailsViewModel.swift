@@ -9,18 +9,20 @@ import Foundation
 
 class DetailsViewModel {
     
-    var isLiked: Bool = false
-    
-    func liked() -> String {
-        if !isLiked {
-            isLiked = true
-            //UserDefaults.standard.set(item, forKey: key)
-            return "heart.fill"
-            
-        } else {
-            isLiked = false
-            return "heart"
-        }
+    func liked(_ id: String) -> String {
+        var isLiked = UserdefaultStorage.shared.get(forKey: "\(id)") ?? false
+        var imageName = ""
+        
+        imageName = isLiked ? "heart" : "heart.fill"
+        isLiked ? UserdefaultStorage.shared.remove(forKey: id) : UserdefaultStorage.shared.save(!isLiked,forKey: id)
+        
+        isLiked.toggle()
+        return imageName
     }
     
+    func fetchEpisodes(url: String, complition: @escaping (Episodes) -> ()) {
+        NetworkService.shared.requestEpisodes(url: url) { ep in
+            complition(ep)
+        }
+    }
 }

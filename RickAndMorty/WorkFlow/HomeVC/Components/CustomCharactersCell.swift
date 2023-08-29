@@ -8,14 +8,26 @@
 import UIKit
 
 class CustomCharactersCell: UITableViewCell {
-
-    static let reuseID = String(describing: CustomCharactersCell.self)
-    let networkService = NetworkService()
+    
+    private lazy var cellLayer: UIView = {
+        let view = UIView()
+        view.clipsToBounds = true
+        view.layer.cornerRadius = 10
+        view.backgroundColor = .white
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOffset = CGSize(width: 0, height: 3)
+        view.layer.shadowRadius = 3
+        view.layer.shadowOpacity = 0.23
+        view.layer.masksToBounds = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
     private lazy var characterPicture: UIImageView = {
         let view = UIImageView()
         view.layer.cornerRadius = self.frame.height / 3.0
         view.layer.masksToBounds = true
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
@@ -23,36 +35,51 @@ class CustomCharactersCell: UITableViewCell {
         let view = UILabel()
         view.font = .systemFont(ofSize: 14, weight: .bold)
         view.numberOfLines = 0
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
+    private lazy var arrow: UIImageView = {
+        let view = UIImageView()
+        view.image = UIImage(named: "arrow")
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
     override func layoutSubviews() {
-        setUp()
+        setupUI()
     }
     
     func config(character to: Result) {
         characterName.text = to.name
-        if let image = UIImage(data: networkService.getImage(url: to.image)) {
+        if let image = UIImage(data: NetworkService.shared.getImage(url: to.image)) {
             characterPicture.image = image
         }
     }
     
-    private func setUp() {
-        contentView.addSubview(characterPicture)
-        characterPicture.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            characterPicture.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 15),
-            characterPicture.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 30),
-            characterPicture.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -15),
-            characterPicture.widthAnchor.constraint(equalToConstant: 70),
-            characterPicture.heightAnchor.constraint(equalToConstant: 70),
-        ])
+    private func setupUI() {
+        contentView.backgroundColor = Constants.Color.baseColor
+        setupLayouts()
+    }
+    
+    private func setupLayouts() {
+        contentView.addSubview(cellLayer)
+        cellLayer.addSubviews(characterPicture, characterName, arrow)
+        cellLayer.addEdgesConstraints(constant: 10, superView: contentView)
         
-        contentView.addSubview(characterName)
-        characterName.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            characterName.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            characterPicture.topAnchor.constraint(equalTo: cellLayer.topAnchor, constant: 15),
+            characterPicture.leadingAnchor.constraint(equalTo: cellLayer.leadingAnchor, constant: 30),
+            characterPicture.bottomAnchor.constraint(equalTo: cellLayer.bottomAnchor, constant: -15),
+            characterPicture.widthAnchor.constraint(equalToConstant: 80),
+            
+            characterName.centerYAnchor.constraint(equalTo: cellLayer.centerYAnchor),
             characterName.leadingAnchor.constraint(equalTo: characterPicture.trailingAnchor, constant: 20),
+            
+            arrow.centerYAnchor.constraint(equalTo: cellLayer.centerYAnchor),
+            arrow.trailingAnchor.constraint(equalTo: cellLayer.trailingAnchor, constant: -15),
+            arrow.heightAnchor.constraint(equalToConstant: 15),
+            arrow.widthAnchor.constraint(equalToConstant: 15)
         ])
     }
 }
